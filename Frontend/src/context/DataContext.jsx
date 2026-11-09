@@ -408,21 +408,32 @@ export function DataProvider({ children }) {
         // Optimistic UI
         setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, ...updates } : s));
         try {
-            const session = sessions.find(s => s.id === sessionId) || updates;
-            const payload = {};
-            if (updates.date) {
-                payload.DateOfMentoring = updates.date;
-                payload.ScheduledMeetingDate = updates.date;
+            // Build the payload to send to the backend.
+            // If updates already contain DB-named fields (e.g. from SessionManagement form),
+            // pass them through directly.  Also handle the legacy shorthand used by the
+            // "Mark Complete" button which passes { status: 'completed' }.
+            const payload = { ...updates };
+
+            // Convert the frontend-only 'status' flag to a DB field
+            if (updates.status === 'completed') {
+                payload.AttendanceStatus = payload.AttendanceStatus || 'Present';
             }
-            if (updates.title) payload.MentoringMeetingAgenda = updates.title;
-            if (updates.notes) payload.IssuesDiscussed = updates.notes;
-            if (updates.status === 'completed') payload.AttendanceStatus = 'Present';
-            
-            const extras = parseDesc(session.Description);
-            if (updates.time) extras.time = updates.time;
-            if (updates.duration) extras.duration = updates.duration;
-            if (updates.location) extras.location = updates.location;
-            payload.Description = JSON.stringify(extras);
+
+            // Remove frontend-only keys that have no DB column
+            delete payload.status;
+            delete payload.id;
+            delete payload.mentorId;
+            delete payload.studentId;
+            delete payload.enrollmentNo;
+            delete payload.studentName;
+            delete payload.mentorName;
+            delete payload.time;
+            delete payload.duration;
+            delete payload.location;
+            delete payload.notes;
+            delete payload.title;
+            delete payload.date;
+            delete payload.dateOfMentoring;
 
             await updateSessionApi(sessionId, payload);
         } catch(err) {

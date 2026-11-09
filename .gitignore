@@ -7,3 +7,4 @@ build/
 .vscode/
 .idea/
 .gemini/
+git_push.bat
